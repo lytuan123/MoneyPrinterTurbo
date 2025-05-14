@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import streamlit as st
 from loguru import logger
+import torch
 
 # Add the root directory of the project to the system path to allow importing modules from the project
 root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -220,6 +221,31 @@ if not config.app.get("hide_config", False):
                 tr("Hide Log"), value=config.ui.get("hide_log", False)
             )
             config.ui["hide_log"] = hide_log
+
+            # --- WHISPER GPU SETTINGS ---
+            whisper_device_options = ["cpu", "cuda"]
+            # Detect GPU availability for default
+            default_device = "cuda" if hasattr(torch, 'cuda') and torch.cuda.is_available() else "cpu"
+            saved_whisper_device = config.whisper.get("device", default_device)
+            whisper_device = st.selectbox(
+                "Whisper Device (CPU/GPU)",
+                options=whisper_device_options,
+                index=whisper_device_options.index(saved_whisper_device) if saved_whisper_device in whisper_device_options else 0,
+                help="Chọn 'cuda' để tận dụng GPU nếu có."
+            )
+            config.whisper["device"] = whisper_device
+
+            whisper_compute_type_options = ["int8", "float16", "int8_float16", "float32"]
+            # Suggest float16 for GPU, int8 for CPU
+            default_compute_type = "float16" if whisper_device == "cuda" else "int8"
+            saved_whisper_compute_type = config.whisper.get("compute_type", default_compute_type)
+            whisper_compute_type = st.selectbox(
+                "Whisper Compute Type",
+                options=whisper_compute_type_options,
+                index=whisper_compute_type_options.index(saved_whisper_compute_type) if saved_whisper_compute_type in whisper_compute_type_options else 0,
+                help="float16 cho GPU, int8 cho CPU."
+            )
+            config.whisper["compute_type"] = whisper_compute_type
 
         # 中间面板 - LLM 设置
 
